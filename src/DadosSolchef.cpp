@@ -17,6 +17,8 @@ String DadosSolchef::ToJSON() const {
         device["lon"] = longitude;
     if (macAddressSolchef.length() > 0)
         device["mac"] = macAddressSolchef;
+    if (ipAddressSolchef.length() > 0)
+        device["ip"] = ipAddressSolchef;
 
     // --- meta ---
     JsonObject meta = doc.createNestedObject("meta");

@@ -11,7 +11,8 @@ class DadosSolchef {
     float tempInterna = 0;     
     float latitude = 0;        
     float longitude = 0;       
-    String macAddressSolchef;    
+    String macAddressSolchef;
+    String ipAddressSolchef;    
 
     // Satelite: Dados Locais
     unsigned long ts = 0;               // Epoch (segundos)

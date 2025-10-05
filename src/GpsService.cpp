@@ -5,7 +5,7 @@ GpsService::GpsService(int rxPin, int txPin, long baudRate, uint8_t uartNum)
 
 void GpsService::IniciaGps() {
   _serial.setRxBufferSize(1024);                 // evita perder NMEA
-  _serial.begin(_baudRate, SERIAL_8N1, _rxPin, _txPin);
+  _serial.begin(_baudRate, SERIAL_8N2, _rxPin, _txPin);
 }
 
 void GpsService::SincronizaGps() {

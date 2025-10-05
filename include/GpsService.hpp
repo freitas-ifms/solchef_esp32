@@ -8,7 +8,7 @@
 class GpsService
 {
     public:
-        GpsService(int rxPin, int txPin, long baudRate, uint8_t uartNum = 1);
+        GpsService(int rxPin, int txPin, long baudRate, uint8_t uartNum = 2);
 
         void IniciaGps();     // inicia UART e aumenta RX buffer
         void SincronizaGps(); // chame sempre no loop

@@ -6,32 +6,38 @@
 #include "SensorTemperaturaService.hpp"
 #include "GpsService.hpp"
 #include "DadosSolchef.hpp"
-
+#include "WeatherApiClient.hpp"
+#include "FileService.hpp"
+#include "WeatherApiClient.hpp"
 // ---------- Objetos globais ----------
 DisplayService oled(21, 22, 128, 64);   // SDA, SCL, largura, altura
 WifiService wifiManager;
 WebServerService webServer;
-SensorTemperaturaService sensorTemperatura(4);
+SensorTemperaturaService sensorTemperaturaAgua(4);
+SensorTemperaturaService sensorTemperaturaInterna(5);
 NvsService nvsManager;               
-GpsService gps(16, 17, 9600);
+GpsService gps(16, 17, 9600); // RX, TX, baudrate
 DadosSolchef dados;
 bool apModeAtivo = false;
+WeatherApiClient clima;
 
-// ---------- Constantes de tempo ----------
+/*
 static const int   TZ_OFFSET_HOURS   = -4;     // America/Cuiaba
 static const uint32_t UI_INTERVAL_MS = 500;    // refresh OLED
 static const uint32_t SEND_INTERVAL_MS = 5000; // envio de dados
 static const uint32_t DBG_INTERVAL_MS = 2000;  // logs no Serial
 
-// ---------- Timers ----------
+
 uint32_t lastUiMs   = 0;
 uint32_t lastSendMs = 0;
 uint32_t lastDbgMs  = 0;
 
+
 void setup() {
   Serial.begin(115200);
+  pinMode(2, OUTPUT);
   oled.Start();
-  gps.IniciaGps();
+  //gps.IniciaGps();
 
   // Wi-Fi: tenta credenciais salvas, senão AP de config
   String savedSSID, savedPass;
@@ -66,6 +72,7 @@ void loop() {
 
   // 2) Se houver fix, atualiza lat/lon; sem fix mantém último valor (evita 0,0)
   if (gps.TemFix()) {
+    digitalWrite(2, HIGH);
     double lat = gps.GetLatitude();
     double lon = gps.GetLongitude();
     if (!isnan(lat) && !isnan(lon)) {
@@ -118,4 +125,79 @@ void loop() {
     gps.ImprimirDadosGps();
     if (!gps.TemFix()) Serial.println("Sem fix GPS");
   }
+}*/
+
+void setup()
+{
+  Serial.begin(115200);
+  pinMode(2, OUTPUT);
+  oled.Start();
+
+  // Wi-Fi: tenta credenciais salvas, senão AP de config
+  String savedSSID, savedPass;
+  bool conectado = false;
+
+  if (nvsManager.LerNvsWifi(savedSSID, savedPass)) {
+    Serial.println("Credenciais encontradas. Tentando conectar...");
+    conectado = wifiManager.connect(savedSSID.c_str(), savedPass.c_str(), 10000);
+    if (!conectado) {
+      Serial.println("Falha ao conectar → iniciando AP");
+      wifiManager.startAccessPoint("SolChef_Config", "12345678");
+      apModeAtivo = true;
+    } else {
+      Serial.println("Conectado em Station Mode!");
+    }
+  } else {
+    Serial.println("Nenhuma credencial salva. Iniciando AP...");
+    wifiManager.startAccessPoint("SolChef_Config", "12345678");
+    apModeAtivo = true;
+  }
+
+  // Sempre inicia o servidor web (rotas locais/endpoint)
+  webServer.SetupRoutes();
+  delay(300); // pequeno respiro para o servidor subir
+  Serial.println("Setup concluido!");
+}
+
+void loop()
+{
+  webServer.HandleClient();
+
+  if (clima.AtualizarDados(-19.0086f, -57.6510f, "M", "pt")) {
+    Serial.printf("%s/%s - %s %s | T=%.1f°C RH=%u%% UV=%.1f\n",
+      clima.nome_cidade.c_str(), clima.nome_estado.c_str(),
+      clima.codigo_pais.c_str(), clima.timezone.c_str(),
+      clima.temperatura_ambiente, clima.rh, clima.uv);
+  } else {
+    Serial.println("Falha ao atualizar dados.");
+  }
+
+  oled.PrintLine(0, "SolChef Monitor");
+  // IP (pode estar vazio em AP)
+  String ipStr = wifiManager.getIPAddress().c_str();
+  oled.PrintLine(1, ipStr.c_str());
+
+  dados.ipAddressSolchef = ipStr;
+  dados.macAddressSolchef = wifiManager.getMeuMacAddress().c_str();
+  dados.codigo_pais = clima.codigo_pais.c_str();
+  dados.nome_estado = clima.nome_estado.c_str();
+  dados.nome_cidade = clima.nome_cidade.c_str();
+  dados.timezone = clima.timezone.c_str();
+  dados.horaRegistro = clima.horaRegistro.c_str();
+  dados.temperatura_ambiente = clima.temperatura_ambiente;
+  dados.rh = clima.rh;
+  dados.uv = clima.uv;
+  dados.solar_rad = clima.solar_rad;
+  dados.ghi = clima.ghi;
+  dados.elev_angle = clima.elev_angle;
+  dados.clouds = clima.clouds;
+  dados.wind_spd = clima.wind_spd;
+  dados.gust = clima.gust;
+  dados.precip = clima.precip;
+  dados.sunrise = clima.sunrise.c_str();
+  dados.sunset = clima.sunset.c_str();
+
+  webServer.SendData(dados);
+
+  delay(5000);
 }
