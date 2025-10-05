@@ -172,13 +172,12 @@ void loop()
     Serial.println("Falha ao atualizar dados.");
   }
 
-  oled.PrintLine(0, "SolChef Monitor");
   // IP (pode estar vazio em AP)
   String ipStr = wifiManager.getIPAddress().c_str();
-  oled.PrintLine(1, ipStr.c_str());
-
   dados.ipAddressSolchef = ipStr;
   dados.macAddressSolchef = wifiManager.getMeuMacAddress().c_str();
+  dados.tempAgua = sensorTemperaturaAgua.GetTemperaturaAgua();
+  dados.tempInterna = sensorTemperaturaInterna.GetTemperaturaAgua();
   dados.codigo_pais = clima.codigo_pais.c_str();
   dados.nome_estado = clima.nome_estado.c_str();
   dados.nome_cidade = clima.nome_cidade.c_str();
@@ -197,6 +196,21 @@ void loop()
   dados.sunrise = clima.sunrise.c_str();
   dados.sunset = clima.sunset.c_str();
 
+  // Linha 0 e 1
+  oled.PrintLine(0, "SolChef Monitor");
+  oled.PrintLine(1, ipStr.c_str()); // ou WiFi.localIP().toString().c_str()
+
+  // Linha 2: T Agua
+  char l2[24];
+  snprintf(l2, sizeof(l2), "T Agua: %.1f C", dados.tempAgua);
+  oled.PrintLine(2, l2);
+
+  // Linha 3: T Int
+  char l3[24];
+  snprintf(l3, sizeof(l3), "T Int:  %.1f C", dados.tempInterna);
+  oled.PrintLine(3, l3);
+
+  // Envio web
   webServer.SendData(dados);
 
   delay(5000);
