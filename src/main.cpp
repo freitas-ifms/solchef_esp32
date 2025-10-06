@@ -285,6 +285,4 @@ void loop() {
 
   // Envia dados ao webserver (pode continuar a cada 30s)
   webServer.SendData(dados);
-
-  delay(30000); // apenas controla envio, não o clima
 }
