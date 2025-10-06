@@ -40,8 +40,12 @@ public:
 private:
     // Deixe http por padrão; se quiser TLS, troque para "https://api.weatherbit.io/v2.0/current"
     String apiUrl = "http://api.weatherbit.io/v2.0/current";
+    //key 1 início 05/10/2025
     String apiKey = "c6112013ce0d43ac8c11cd051bd25154";
 
+    //key 2 início 06/10/2025
+    //String apiKey = "2e3eec124ba44872a42483d30921a6d4";
+    
     bool DesserializaObjeto(JsonVariantConst item);
 
     // util para pegar número (float) com segurança

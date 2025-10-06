@@ -20,6 +20,9 @@ GpsService gps(16, 17, 9600); // RX, TX, baudrate
 DadosSolchef dados;
 bool apModeAtivo = false;
 WeatherApiClient clima;
+unsigned long ultimaAtualizacaoClima = 0;
+const unsigned long intervaloClima = 1800000; // 30 minutos em ms
+bool primeiraExecucao = true;
 
 /*
 static const int   TZ_OFFSET_HOURS   = -4;     // America/Cuiaba
@@ -159,7 +162,7 @@ void setup()
   Serial.println("Setup concluido!");
 }
 
-void loop()
+/*void loop()
 {
   webServer.HandleClient();
 
@@ -212,6 +215,76 @@ void loop()
 
   // Envio web
   webServer.SendData(dados);
+  delay(30000);
+}*/
 
-  delay(5000);
+void loop() {
+  webServer.HandleClient();
+
+  // Atualiza clima a cada 10 minutos
+  unsigned long agora = millis();
+  Serial.print("Agora: ");
+  Serial.println(agora);
+
+  if (primeiraExecucao || (agora - ultimaAtualizacaoClima >= intervaloClima)) {
+    
+    primeiraExecucao = false;
+    ultimaAtualizacaoClima = agora;
+    Serial.println("Ultima atualizacao:");
+    Serial.println(ultimaAtualizacaoClima);
+
+    if (clima.AtualizarDados(-19.0086f, -57.6510f, "M", "pt")) {
+      Serial.printf("%s/%s - %s %s | T=%.1f°C RH=%u%% UV=%.1f\n",
+        clima.nome_cidade.c_str(), clima.nome_estado.c_str(),
+        clima.codigo_pais.c_str(), clima.timezone.c_str(),
+        clima.temperatura_ambiente, clima.rh, clima.uv);
+    } else {
+      Serial.println("Falha ao atualizar dados.");
+    }
+  }
+
+  // Atualizações contínuas do sistema
+  String ipStr = wifiManager.getIPAddress().c_str();
+  dados.ipAddressSolchef = ipStr;
+  dados.macAddressSolchef = wifiManager.getMeuMacAddress().c_str();
+  dados.tempAgua = sensorTemperaturaAgua.GetTemperaturaAgua();
+  dados.tempInterna = sensorTemperaturaInterna.GetTemperaturaAgua();
+  dados.latitude = -19.0086f;
+  dados.longitude = -57.6510f;
+
+  // Últimos dados climáticos (mantém os valores do último update)
+  dados.codigo_pais = clima.codigo_pais.c_str();
+  dados.nome_estado = clima.nome_estado.c_str();
+  dados.nome_cidade = clima.nome_cidade.c_str();
+  dados.timezone = clima.timezone.c_str();
+  dados.horaRegistro = clima.horaRegistro.c_str();
+  dados.temperatura_ambiente = clima.temperatura_ambiente;
+  dados.rh = clima.rh;
+  dados.uv = clima.uv;
+  dados.solar_rad = clima.solar_rad;
+  dados.ghi = clima.ghi;
+  dados.elev_angle = clima.elev_angle;
+  dados.clouds = clima.clouds;
+  dados.wind_spd = clima.wind_spd;
+  dados.gust = clima.gust;
+  dados.precip = clima.precip;
+  dados.sunrise = clima.sunrise.c_str();
+  dados.sunset = clima.sunset.c_str();
+
+  // Atualiza OLED
+  oled.PrintLine(0, "SolChef Monitor");
+  oled.PrintLine(1, ipStr.c_str());
+
+  char l2[24];
+  snprintf(l2, sizeof(l2), "T Agua: %.1f C", dados.tempAgua);
+  oled.PrintLine(2, l2);
+
+  char l3[24];
+  snprintf(l3, sizeof(l3), "T Int:  %.1f C", dados.tempInterna);
+  oled.PrintLine(3, l3);
+
+  // Envia dados ao webserver (pode continuar a cada 30s)
+  webServer.SendData(dados);
+
+  delay(30000); // apenas controla envio, não o clima
 }
