@@ -23,7 +23,7 @@ WeatherApiClient clima;
 unsigned long ultimaAtualizacaoClima = 0;
 const unsigned long intervaloClima = 1800000; // 30 minutos em ms
 bool primeiraExecucao = true;
-
+int contadorWeatherbit = 0;
 /*
 static const int   TZ_OFFSET_HOURS   = -4;     // America/Cuiaba
 static const uint32_t UI_INTERVAL_MS = 500;    // refresh OLED
@@ -225,9 +225,10 @@ void loop() {
   unsigned long agora = millis();
   Serial.print("Agora: ");
   Serial.println(agora);
+  Serial.printf("Atualizando clima (contador %d)...\n", contadorWeatherbit);
 
   if (primeiraExecucao || (agora - ultimaAtualizacaoClima >= intervaloClima)) {
-    
+    contadorWeatherbit++;
     primeiraExecucao = false;
     ultimaAtualizacaoClima = agora;
     Serial.println("Ultima atualizacao:");
